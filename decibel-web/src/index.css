@@ -1,0 +1,341 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&display=swap");
+
+:root {
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-serif: "Instrument Serif", serif;
+
+  --background: #000000;
+  --foreground: #ffffff;
+
+  /* Keep existing color extractor hooks working */
+  --theme-glow-rgb: 99, 102, 241;
+  --theme-glow: rgba(99, 102, 241, 0.4);
+  --theme-dominant: rgba(99, 102, 241, 0.12);
+
+  --text-primary: #ffffff;
+  --text-secondary: rgba(255, 255, 255, 0.65);
+  --text-muted: rgba(255, 255, 255, 0.38);
+  --border-light: rgba(255, 255, 255, 0.06);
+  --border-glow: rgba(var(--theme-glow-rgb, 99, 102, 241), 0.25);
+
+  --bg-card: rgba(255, 255, 255, 0.03);
+  --bg-sidebar: rgba(0, 0, 0, 0.35);
+  --bg-player: rgba(0, 0, 0, 0.5);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  height: 100vh;
+}
+
+#root {
+  height: 100%;
+}
+
+/* ─── Liquid Glass ─────────────────────────────────────────────────────────── */
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.01);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: none;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.liquid-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  padding: 1.4px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.15) 20%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.15) 80%,
+    rgba(255, 255, 255, 0.45) 100%
+  );
+  border-radius: inherit;
+  -webkit-mask: linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ─── Glass Pill (stronger blur, no gradient border) ──────────────────────── */
+.glass-pill {
+  background: rgba(255, 255, 255, 0.04);
+  backdrop-filter: blur(16px) saturate(180%);
+  -webkit-backdrop-filter: blur(16px) saturate(180%);
+  border-radius: 9999px;
+  box-shadow: none !important;
+}
+
+/* Keep .glass as alias of liquid-glass for backward compat */
+.glass {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+/* ─── Scrollbars ───────────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ─── Buttons ──────────────────────────────────────────────────────────────── */
+button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: inherit;
+  font-family: inherit;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+button:focus { outline: none; }
+
+.btn-primary {
+  background: rgba(255, 255, 255, 0.9);
+  color: #000;
+  padding: 10px 24px;
+  border-radius: 500px;
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  transition: all 0.25s ease;
+}
+.btn-primary:hover {
+  background: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(255,255,255,0.15);
+}
+
+/* ─── Track rows ──────────────────────────────────────────────────────────── */
+.track-row {
+  display: grid;
+  grid-template-columns: 48px 2.5fr 1.8fr 1.5fr 80px;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+}
+.track-row:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.05);
+  color: var(--text-primary);
+}
+.track-row.active {
+  background: rgba(var(--theme-glow-rgb), 0.08);
+  border-color: rgba(var(--theme-glow-rgb), 0.12);
+  color: rgb(var(--theme-glow-rgb));
+}
+
+/* ─── Inputs ───────────────────────────────────────────────────────────────── */
+.glass-input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50px;
+  padding: 12px 20px;
+  color: white;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+.glass-input:focus {
+  outline: none;
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.25);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.05);
+}
+.glass-input::placeholder { color: rgba(255, 255, 255, 0.35); }
+
+/* ─── Vinyl record spin animation ─────────────────────────────────────────── */
+@keyframes recordSpin {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.vinyl-record {
+  animation: recordSpin 3.5s linear infinite;
+  animation-play-state: paused;
+}
+.vinyl-record.spinning {
+  animation-play-state: running;
+}
+
+/* ─── Dynamic glow backdrop (color extractor) ─────────────────────────────── */
+.dynamic-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    circle at 50% 50%,
+    rgba(var(--theme-glow-rgb), 0.1) 0%,
+    transparent 70%
+  );
+  transition: background 2s ease;
+}
+
+/* ─── Spotify Layout Overrides ────────────────────────────────────────────── */
+/* 1. App Layout Structure */
+#root > div:first-child {
+  display: grid !important;
+  grid-template-columns: 240px 1fr !important;
+  grid-template-rows: 1fr auto !important;
+  grid-template-areas:
+    "sidebar main"
+    "player player" !important;
+  height: 100vh !important;
+  gap: 8px !important;
+  padding: 8px !important;
+  box-sizing: border-box !important;
+  flex-direction: initial !important; 
+}
+
+/* 2. Sidebar Area */
+#root > div:first-child > nav {
+  grid-area: sidebar !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: flex-start !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  height: 100% !important;
+  padding: 24px 16px !important;
+  border-radius: 8px !important;
+  background: var(--bg-card) !important;
+  position: relative !important;
+  z-index: 20 !important;
+  max-width: none !important;
+}
+
+#root > div:first-child > nav > div {
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  gap: 24px !important;
+  padding: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  max-width: none !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+}
+
+#root > div:first-child > nav > div::before {
+  display: none !important;
+}
+
+#root > div:first-child > nav > div > div:nth-child(2) {
+  flex-direction: column !important;
+  width: 100% !important;
+  gap: 8px !important;
+  overflow: visible !important;
+}
+
+#root > div:first-child > nav > div > div:nth-child(2) > button {
+  width: 100% !important;
+  justify-content: flex-start !important;
+  padding: 10px 16px !important;
+  border-radius: 6px !important;
+}
+
+/* 3. Main Content Area */
+#root > div:first-child > main {
+  grid-area: main !important;
+  overflow-y: auto !important;
+  padding: 24px 32px !important;
+  height: 100% !important;
+  border-radius: 8px !important;
+  background: var(--bg-card) !important;
+  margin: 0 !important;
+}
+
+/* 4. Bottom Player Area */
+#root > div:first-child > footer {
+  grid-area: player !important;
+  width: 100% !important;
+  border-radius: 8px !important;
+  background: var(--bg-card) !important;
+  border: none !important;
+  margin: 0 !important;
+}
+
+/* 5. Card Grid Layout */
+/* We target deeper flex-wrap containers to avoid breaking top-level tab wrappers */
+main > div > div [style*="flex-wrap: wrap"],
+main > div > div [style*="flex-wrap:wrap"],
+main > div > div[style*="flex-wrap: wrap"],
+main > div > div[style*="flex-wrap:wrap"] {
+  display: grid !important;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
+  gap: 24px !important;
+  flex-direction: initial !important;
+}
+
+/* Override card children to fit the grid */
+main > div > div [style*="flex-wrap: wrap"] > div,
+main > div > div [style*="flex-wrap:wrap"] > div,
+main > div > div[style*="flex-wrap: wrap"] > div,
+main > div > div[style*="flex-wrap:wrap"] > div {
+  width: 100% !important;
+  min-width: 0 !important;
+  border-radius: 8px !important;
+  padding: 16px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 16px !important;
+  justify-content: flex-start !important;
+}
+
+/* Card images perfect aspect ratio */
+main > div > div [style*="flex-wrap: wrap"] > div img,
+main > div > div [style*="flex-wrap:wrap"] > div img,
+main > div > div[style*="flex-wrap: wrap"] > div img,
+main > div > div[style*="flex-wrap:wrap"] > div img {
+  width: 100% !important;
+  height: auto !important;
+  aspect-ratio: 1 / 1 !important;
+  object-fit: cover !important;
+  border-radius: 6px !important;
+}
+
+/* Force round shape if it's an artist image (identifiable if inline style has border-radius 50%) */
+main > div > div [style*="flex-wrap: wrap"] > div img[style*="50%"],
+main > div > div [style*="flex-wrap:wrap"] > div img[style*="50%"],
+main > div > div[style*="flex-wrap: wrap"] > div img[style*="50%"],
+main > div > div[style*="flex-wrap:wrap"] > div img[style*="50%"] {
+  border-radius: 50% !important;
+}
