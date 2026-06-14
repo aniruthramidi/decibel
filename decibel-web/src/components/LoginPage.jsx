@@ -138,38 +138,97 @@ export default function LoginPage({ onAuthenticated }) {
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null); // { type, msg }
 
-  // Clear alert on mode switch
-  useEffect(() => { setAlert(null); setEmail(''); setPassword(''); setName(''); }, [mode]);
+  const [otp, setOtp] = useState('');
 
-  function handleSubmit(e) {
+  // Clear alert on mode switch between login and signup
+  useEffect(() => {
+    if (mode === 'login' || mode === 'signup') {
+      setAlert(null);
+      setEmail('');
+      setPassword('');
+      setName('');
+      setOtp('');
+    }
+  }, [mode]);
+
+  async function handleSubmit(e) {
     e.preventDefault();
     setAlert(null);
 
     if (!email.trim() || !password.trim()) {
       return setAlert({ type: 'error', msg: 'Please fill in all fields.' });
     }
-    if (password.length < 6) {
+    if (mode === 'signup' && password.length < 8) {
+      return setAlert({ type: 'error', msg: 'Password must be at least 8 characters.' });
+    }
+    if (mode === 'login' && password.length < 6) {
       return setAlert({ type: 'error', msg: 'Password must be at least 6 characters.' });
     }
 
     setLoading(true);
-    setTimeout(() => {
+    try {
       if (mode === 'signup') {
-        saveUser(email.trim(), password);
-        const displayName = name.trim() || email.split('@')[0];
-        saveSession(displayName, email.trim());
-        onAuthenticated({ name: displayName, email: email.trim() });
-      } else {
-        if (checkCredentials(email.trim(), password)) {
-          const displayName = name || email.split('@')[0];
-          saveSession(displayName, email.trim());
-          onAuthenticated({ name: displayName, email: email.trim() });
+        const res = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), password, name: name.trim() }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          setMode('otp');
+          setAlert({ type: 'success', msg: 'Registration successful! Enter the OTP below.' });
         } else {
-          setAlert({ type: 'error', msg: 'Invalid email or password.' });
-          setLoading(false);
+          setAlert({ type: 'error', msg: data.detail || 'Registration failed.' });
+        }
+      } else {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: email.trim(), password }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          saveSession(data.name, data.email);
+          onAuthenticated({ name: data.name, email: data.email, email_verified: data.email_verified });
+        } else {
+          setAlert({ type: 'error', msg: data.detail || 'Invalid email or password.' });
         }
       }
-    }, 600);
+    } catch (err) {
+      setAlert({ type: 'error', msg: 'Server unreachable. Please check your backend.' });
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleOtpSubmit(e) {
+    e.preventDefault();
+    setAlert(null);
+
+    if (otp.length < 6) {
+      return setAlert({ type: 'error', msg: 'Please enter the 6-digit code.' });
+    }
+
+    setLoading(true);
+    try {
+      const res = await fetch('/api/auth/verify-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim(), code: otp.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        const displayName = name.trim() || email.split('@')[0];
+        saveSession(displayName, email.trim());
+        onAuthenticated({ name: displayName, email: email.trim(), email_verified: true });
+      } else {
+        setAlert({ type: 'error', msg: data.detail || 'Invalid code. Please try again.' });
+      }
+    } catch (err) {
+      setAlert({ type: 'error', msg: 'Server unreachable. Please check your backend.' });
+    } finally {
+      setLoading(false);
+    }
   }
 
   function continueAsGuest() {
@@ -178,7 +237,6 @@ export default function LoginPage({ onAuthenticated }) {
   }
 
   function handleSocial(provider) {
-    // Demo: social logins just create a session
     const displayName = `${provider} User`;
     saveSession(displayName, `${provider.toLowerCase()}@decibel.app`);
     onAuthenticated({ name: displayName, email: `${provider.toLowerCase()}@decibel.app` });
@@ -228,143 +286,225 @@ export default function LoginPage({ onAuthenticated }) {
               Decibel
             </h1>
             <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.4)', fontWeight: 400 }}>
-              {mode === 'login' ? 'Welcome back' : 'Create your account'}
+              {mode === 'otp'
+                ? 'Verify your email'
+                : mode === 'login'
+                ? 'Welcome back'
+                : 'Create your account'}
             </p>
           </div>
 
-          {/* Social buttons */}
-          <div style={{ display: 'flex', gap: '8px' }}>
-            <SocialBtn
-              label="Google"
-              icon={<Globe size={15} />}
-              onClick={() => handleSocial('Google')}
-            />
-            <SocialBtn
-              label="Spotify"
-              icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>}
-              onClick={() => handleSocial('Spotify')}
-            />
-            <SocialBtn
-              label="Apple"
-              icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.56-1.32 3.1-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>}
-              onClick={() => handleSocial('Apple')}
-            />
-          </div>
+          {mode === 'otp' ? (
+            <form onSubmit={handleOtpSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <AnimatePresence mode="wait">
+                {alert && (
+                  <Alert key="alert" type={alert.type}>{alert.msg}</Alert>
+                )}
+              </AnimatePresence>
 
-          {/* Divider */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-            <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>or</span>
-            <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
-          </div>
+              <div style={{
+                padding: '14px 16px', borderRadius: '14px',
+                background: 'rgba(99,102,241,0.08)',
+                border: '1px solid rgba(99,102,241,0.2)',
+                fontSize: '13px', color: 'rgba(255,255,255,0.65)', lineHeight: 1.5,
+              }}>
+                <strong style={{ color: 'rgba(255,255,255,0.85)' }}>Demo mode:</strong> The verification code is{' '}
+                <strong style={{ color: '#a5b4fc', letterSpacing: '0.1em' }}>123456</strong>
+              </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-            <AnimatePresence mode="wait">
-              {alert && (
-                <Alert key="alert" type={alert.type}>{alert.msg}</Alert>
-              )}
-            </AnimatePresence>
+              <p style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, textAlign: 'center' }}>
+                We sent a 6-digit code to <strong style={{ color: 'rgba(255,255,255,0.8)' }}>{email}</strong>
+              </p>
 
-            {mode === 'signup' && (
               <GlassInput
-                label="Name"
-                value={name}
-                onChange={e => setName(e.target.value)}
-                placeholder="Your name"
+                label="Verification Code"
+                value={otp}
+                onChange={e => setOtp(e.target.value)}
+                placeholder="123456"
                 autoFocus
               />
-            )}
 
-            <GlassInput
-              label="Email"
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              autoFocus={mode === 'login'}
-            />
+              <motion.button
+                whileTap={{ scale: 0.98 }}
+                type="submit"
+                disabled={loading}
+                style={{
+                  width: '100%',
+                  padding: '13px',
+                  borderRadius: '14px',
+                  background: loading ? 'rgba(255,255,255,0.6)' : '#fff',
+                  color: '#000',
+                  fontSize: '14px',
+                  fontWeight: 600,
+                  fontFamily: "'Inter', sans-serif",
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  border: 'none',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                  transition: 'all 0.2s ease',
+                  marginTop: '4px',
+                }}
+              >
+                {loading ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                  </svg>
+                ) : (
+                  <>
+                    Verify & Sign In
+                    <ArrowRight size={16} />
+                  </>
+                )}
+              </motion.button>
 
-            <GlassInput
-              label="Password"
-              type={showPw ? 'text' : 'password'}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              rightEl={
-                <button
-                  type="button"
-                  onClick={() => setShowPw(!showPw)}
-                  style={{ color: 'rgba(255,255,255,0.35)', display: 'flex', cursor: 'pointer', background: 'none', border: 'none' }}
+              <button
+                type="button"
+                onClick={() => setMode('login')}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: '12px', color: 'rgba(255,255,255,0.35)',
+                  fontFamily: 'inherit', textAlign: 'center', marginTop: '8px',
+                }}
+              >
+                ← Back to Sign In
+              </button>
+            </form>
+          ) : (
+            <>
+              {/* Social buttons */}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <SocialBtn
+                  label="Google"
+                  icon={<Globe size={15} />}
+                  onClick={() => handleSocial('Google')}
+                />
+                <SocialBtn
+                  label="Spotify"
+                  icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>}
+                  onClick={() => handleSocial('Spotify')}
+                />
+                <SocialBtn
+                  label="Apple"
+                  icon={<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.7 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.56-1.32 3.1-2.54 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>}
+                  onClick={() => handleSocial('Apple')}
+                />
+              </div>
+
+              {/* Divider */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+                <span style={{ fontSize: '12px', color: 'rgba(255,255,255,0.3)', fontWeight: 500 }}>or</span>
+                <div style={{ flex: 1, height: '1px', background: 'rgba(255,255,255,0.08)' }} />
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                <AnimatePresence mode="wait">
+                  {alert && (
+                    <Alert key="alert" type={alert.type}>{alert.msg}</Alert>
+                  )}
+                </AnimatePresence>
+
+                {mode === 'signup' && (
+                  <GlassInput
+                    label="Name"
+                    value={name}
+                    onChange={e => setName(e.target.value)}
+                    placeholder="Your name"
+                    autoFocus
+                  />
+                )}
+
+                <GlassInput
+                  label="Email"
+                  type="email"
+                  value={email}
+                  onChange={e => setEmail(e.target.value)}
+                  placeholder="you@example.com"
+                  autoFocus={mode === 'login'}
+                />
+
+                <GlassInput
+                  label="Password"
+                  type={showPw ? 'text' : 'password'}
+                  value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  rightEl={
+                    <button
+                      type="button"
+                      onClick={() => setShowPw(!showPw)}
+                      style={{ color: 'rgba(255,255,255,0.35)', display: 'flex', cursor: 'pointer', background: 'none', border: 'none' }}
+                    >
+                      {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  }
+                />
+
+                {/* Submit */}
+                <motion.button
+                  whileTap={{ scale: 0.98 }}
+                  type="submit"
+                  disabled={loading}
+                  style={{
+                    width: '100%',
+                    padding: '13px',
+                    borderRadius: '14px',
+                    background: loading ? 'rgba(255,255,255,0.6)' : '#fff',
+                    color: '#000',
+                    fontSize: '14px',
+                    fontWeight: 600,
+                    fontFamily: "'Inter', sans-serif",
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    border: 'none',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                    transition: 'all 0.2s ease',
+                    marginTop: '4px',
+                  }}
                 >
-                  {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-                </button>
-              }
-            />
+                  {loading ? (
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                    </svg>
+                  ) : (
+                    <>
+                      {mode === 'login' ? 'Sign In' : 'Create Account'}
+                      <ArrowRight size={16} />
+                    </>
+                  )}
+                </motion.button>
+              </form>
 
-            {/* Submit */}
-            <motion.button
-              whileTap={{ scale: 0.98 }}
-              type="submit"
-              disabled={loading}
-              style={{
-                width: '100%',
-                padding: '13px',
-                borderRadius: '14px',
-                background: loading ? 'rgba(255,255,255,0.6)' : '#fff',
-                color: '#000',
-                fontSize: '14px',
-                fontWeight: 600,
-                fontFamily: "'Inter', sans-serif",
-                cursor: loading ? 'not-allowed' : 'pointer',
-                border: 'none',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
-                transition: 'all 0.2s ease',
-                marginTop: '4px',
-              }}
-            >
-              {loading ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ animation: 'spin 1s linear infinite' }}>
-                  <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
-                </svg>
-              ) : (
-                <>
-                  {mode === 'login' ? 'Sign In' : 'Create Account'}
-                  <ArrowRight size={16} />
-                </>
-              )}
-            </motion.button>
-          </form>
+              {/* Mode toggle */}
+              <div style={{ textAlign: 'center', fontSize: '13px', color: 'rgba(255,255,255,0.35)' }}>
+                {mode === 'login' ? (
+                  <>Don't have an account?{' '}
+                    <button onClick={() => setMode('signup')} style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      Sign up
+                    </button>
+                  </>
+                ) : (
+                  <>Already have an account?{' '}
+                    <button onClick={() => setMode('login')} style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
+                      Sign in
+                    </button>
+                  </>
+                )}
+              </div>
 
-          {/* Mode toggle */}
-          <div style={{ textAlign: 'center', fontSize: '13px', color: 'rgba(255,255,255,0.35)' }}>
-            {mode === 'login' ? (
-              <>Don't have an account?{' '}
-                <button onClick={() => setMode('signup')} style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  Sign up
-                </button>
-              </>
-            ) : (
-              <>Already have an account?{' '}
-                <button onClick={() => setMode('login')} style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 600, background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'inherit' }}>
-                  Sign in
-                </button>
-              </>
-            )}
-          </div>
-
-          {/* Guest access */}
-          <button
-            onClick={continueAsGuest}
-            style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              fontSize: '12px', color: 'rgba(255,255,255,0.25)',
-              fontFamily: 'inherit', textDecoration: 'underline',
-              textUnderlineOffset: '3px',
-            }}
-          >
-            Continue as Guest →
-          </button>
+              {/* Guest access */}
+              <button
+                onClick={continueAsGuest}
+                style={{
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  fontSize: '12px', color: 'rgba(255,255,255,0.25)',
+                  fontFamily: 'inherit', textDecoration: 'underline',
+                  textUnderlineOffset: '3px',
+                }}
+              >
+                Continue as Guest →
+              </button>
+            </>
+          )}
         </div>
       </motion.div>
 
