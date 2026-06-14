@@ -327,3 +327,110 @@ main > div > div[style*="flex-wrap"]:not([style*="gap: 2rem"]):not([style*="gap:
 main > div > div[style*="flex-wrap"]:not([style*="gap: 2rem"]):not([style*="gap:2rem"]) > div img[style*="50%"] {
   border-radius: 50% !important;
 }
+
+/* 6. Responsive Layout for Mobile/Tablets (< 768px) */
+@media (max-width: 768px) {
+  #root > div:first-child:not([style*="fixed"]) {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100vh !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  /* Reset vertical sidebar to horizontal top bar */
+  #root > div:first-child:not([style*="fixed"]) > nav {
+    grid-area: initial !important;
+    width: 100% !important;
+    height: auto !important;
+    padding: 10px 14px !important;
+    border-radius: 0 !important;
+    background: rgba(0,0,0,0.85) !important;
+    backdrop-filter: blur(20px) !important;
+    border-bottom: 1px solid rgba(255,255,255,0.08) !important;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.3) !important;
+  }
+
+  #root > div:first-child:not([style*="fixed"]) > nav > div {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    width: 100% !important;
+    gap: 12px !important;
+    max-width: none !important;
+  }
+
+  #root > div:first-child:not([style*="fixed"]) > nav > div > div:nth-child(2) {
+    flex-direction: row !important;
+    width: auto !important;
+    gap: 4px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+  }
+  
+  #root > div:first-child:not([style*="fixed"]) > nav > div > div:nth-child(2)::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  #root > div:first-child:not([style*="fixed"]) > nav > div > div:nth-child(2) > button {
+    width: auto !important;
+    padding: 8px 12px !important;
+    border-radius: 9999px !important;
+  }
+
+  .hidden-mobile {
+    display: none !important;
+  }
+
+  /* Reset main content area to scrollable full-width */
+  #root > div:first-child:not([style*="fixed"]) > main {
+    grid-area: initial !important;
+    flex: 1 !important;
+    padding: 16px !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Home tab container stacks layout vertically on small viewports */
+  #root > div:first-child:not([style*="fixed"]) > main > div > div[style*="flex-wrap"] {
+    flex-direction: column !important;
+    gap: 20px !important;
+  }
+
+  /* Force first column (Vinyl Player) and second column (Recommendations) to fill width */
+  #root > div:first-child:not([style*="fixed"]) > main > div > div[style*="flex-wrap"] > div {
+    width: 100% !important;
+    flex: none !important;
+  }
+
+  /* Reset bottom player area */
+  #root > div:first-child:not([style*="fixed"]) > footer {
+    grid-area: initial !important;
+    grid-template-columns: 1fr auto !important;
+    height: 76px !important;
+    padding: 0 16px !important;
+    gap: 8px !important;
+    border-radius: 0 !important;
+    border-top: 1px solid rgba(255,255,255,0.08) !important;
+  }
+
+  /* Hide progress bar, shuffle/repeat and volume controls on mobile */
+  #root > div:first-child:not([style*="fixed"]) > footer > div:nth-child(2) > div:nth-child(2) {
+    display: none !important;
+  }
+  #root > div:first-child:not([style*="fixed"]) > footer > div:nth-child(2) > div:first-child > button:first-child,
+  #root > div:first-child:not([style*="fixed"]) > footer > div:nth-child(2) > div:first-child > button:last-child {
+    display: none !important;
+  }
+  #root > div:first-child:not([style*="fixed"]) > footer > div:nth-child(3) {
+    display: none !important;
+  }
+
+  /* Center the main controls on mobile */
+  #root > div:first-child:not([style*="fixed"]) > footer > div:nth-child(2) {
+    margin: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+  }
+}
+
