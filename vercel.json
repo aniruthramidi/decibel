@@ -1,0 +1,8 @@
+{
+  "buildCommand": "cd decibel-web && npm install && npm run build",
+  "outputDirectory": "decibel-web/dist",
+  "framework": "vite",
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}
