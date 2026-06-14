@@ -294,11 +294,8 @@ button:focus { outline: none; }
 }
 
 /* 5. Card Grid Layout */
-/* We target deeper flex-wrap containers to avoid breaking top-level tab wrappers */
-main > div > div [style*="flex-wrap: wrap"],
-main > div > div [style*="flex-wrap:wrap"],
-main > div > div[style*="flex-wrap: wrap"],
-main > div > div[style*="flex-wrap:wrap"] {
+/* We target flex-wrap containers but EXPLICITLY exclude the Home tab wrapper which uses gap: 2rem */
+main > div > div[style*="flex-wrap"]:not([style*="gap: 2rem"]):not([style*="gap:2rem"]) {
   display: grid !important;
   grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)) !important;
   gap: 24px !important;
@@ -306,10 +303,7 @@ main > div > div[style*="flex-wrap:wrap"] {
 }
 
 /* Override card children to fit the grid */
-main > div > div [style*="flex-wrap: wrap"] > div,
-main > div > div [style*="flex-wrap:wrap"] > div,
-main > div > div[style*="flex-wrap: wrap"] > div,
-main > div > div[style*="flex-wrap:wrap"] > div {
+main > div > div[style*="flex-wrap"]:not([style*="gap: 2rem"]):not([style*="gap:2rem"]) > div {
   width: 100% !important;
   min-width: 0 !important;
   border-radius: 8px !important;
@@ -321,10 +315,7 @@ main > div > div[style*="flex-wrap:wrap"] > div {
 }
 
 /* Card images perfect aspect ratio */
-main > div > div [style*="flex-wrap: wrap"] > div img,
-main > div > div [style*="flex-wrap:wrap"] > div img,
-main > div > div[style*="flex-wrap: wrap"] > div img,
-main > div > div[style*="flex-wrap:wrap"] > div img {
+main > div > div[style*="flex-wrap"]:not([style*="gap: 2rem"]):not([style*="gap:2rem"]) > div img {
   width: 100% !important;
   height: auto !important;
   aspect-ratio: 1 / 1 !important;
@@ -333,9 +324,6 @@ main > div > div[style*="flex-wrap:wrap"] > div img {
 }
 
 /* Force round shape if it's an artist image (identifiable if inline style has border-radius 50%) */
-main > div > div [style*="flex-wrap: wrap"] > div img[style*="50%"],
-main > div > div [style*="flex-wrap:wrap"] > div img[style*="50%"],
-main > div > div[style*="flex-wrap: wrap"] > div img[style*="50%"],
-main > div > div[style*="flex-wrap:wrap"] > div img[style*="50%"] {
+main > div > div[style*="flex-wrap"]:not([style*="gap: 2rem"]):not([style*="gap:2rem"]) > div img[style*="50%"] {
   border-radius: 50% !important;
 }
