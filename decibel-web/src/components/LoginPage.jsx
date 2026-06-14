@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Music2, Eye, EyeOff, ArrowRight, Globe } from 'lucide-react';
 import BackgroundVideo from './BackgroundVideo';
+import { supabase } from '../services/supabaseClient';
 
 /* ── Simple auth helpers (demo — stores in localStorage) ─────────── */
 const USERS_KEY = 'decibel_users';
@@ -168,34 +169,42 @@ export default function LoginPage({ onAuthenticated }) {
     setLoading(true);
     try {
       if (mode === 'signup') {
-        const res = await fetch('/api/auth/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim(), password, name: name.trim() }),
+        const { data, error } = await supabase.auth.signUp({
+          email: email.trim(),
+          password: password,
+          options: {
+            data: {
+              name: name.trim()
+            }
+          }
         });
-        const data = await res.json();
-        if (res.ok) {
-          setMode('otp');
-          setAlert({ type: 'success', msg: 'Registration successful! Enter the OTP below.' });
+        if (error) {
+          setAlert({ type: 'error', msg: error.message || 'Registration failed.' });
         } else {
-          setAlert({ type: 'error', msg: data.detail || 'Registration failed.' });
+          if (data?.session) {
+            const displayName = data.user.user_metadata?.name || email.split('@')[0];
+            saveSession(displayName, email.trim());
+            onAuthenticated({ name: displayName, email: email.trim(), email_verified: data.user.email_confirmed_at ? true : false });
+          } else {
+            setMode('otp');
+            setAlert({ type: 'success', msg: 'Registration successful! Check your email for a verification code.' });
+          }
         }
       } else {
-        const res = await fetch('/api/auth/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: email.trim(), password }),
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password: password
         });
-        const data = await res.json();
-        if (res.ok) {
-          saveSession(data.name, data.email);
-          onAuthenticated({ name: data.name, email: data.email, email_verified: data.email_verified });
+        if (error) {
+          setAlert({ type: 'error', msg: error.message || 'Invalid email or password.' });
         } else {
-          setAlert({ type: 'error', msg: data.detail || 'Invalid email or password.' });
+          const displayName = data.user?.user_metadata?.name || email.split('@')[0];
+          saveSession(displayName, email.trim());
+          onAuthenticated({ name: displayName, email: email.trim(), email_verified: data.user?.email_confirmed_at ? true : false });
         }
       }
     } catch (err) {
-      setAlert({ type: 'error', msg: 'Server unreachable. Please check your backend.' });
+      setAlert({ type: 'error', msg: 'Server unreachable. Please check your network.' });
     } finally {
       setLoading(false);
     }
@@ -211,21 +220,20 @@ export default function LoginPage({ onAuthenticated }) {
 
     setLoading(true);
     try {
-      const res = await fetch('/api/auth/verify-email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim(), code: otp.trim() }),
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: otp.trim(),
+        type: 'signup'
       });
-      const data = await res.json();
-      if (res.ok) {
-        const displayName = name.trim() || email.split('@')[0];
+      if (error) {
+        setAlert({ type: 'error', msg: error.message || 'Invalid code. Please try again.' });
+      } else {
+        const displayName = data.user?.user_metadata?.name || email.split('@')[0];
         saveSession(displayName, email.trim());
         onAuthenticated({ name: displayName, email: email.trim(), email_verified: true });
-      } else {
-        setAlert({ type: 'error', msg: data.detail || 'Invalid code. Please try again.' });
       }
     } catch (err) {
-      setAlert({ type: 'error', msg: 'Server unreachable. Please check your backend.' });
+      setAlert({ type: 'error', msg: 'Verification failed. Please try again.' });
     } finally {
       setLoading(false);
     }

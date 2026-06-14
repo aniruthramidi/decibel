@@ -13,6 +13,8 @@ import LoginPage, { getSession, clearSession } from './components/LoginPage';
 import AccountTab from './components/AccountTab';
 import Lyrics from './components/Lyrics';
 import Recommendations from './components/Recommendations';
+import { supabase } from './services/supabaseClient';
+
 
 import useAudio from './hooks/useAudio';
 import useColorExtractor from './hooks/useColorExtractor';
@@ -26,6 +28,33 @@ import { Search, Heart, Music, ListMusic, Trash2, Library, Sparkles, X, LogOut, 
 export default function App() {
   // ── Auth ──────────────────────────────────────────────────────────────
   const [session, setSession] = useState(() => getSession());
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      if (initialSession) {
+        setSession({
+          name: initialSession.user.user_metadata?.name || initialSession.user.email.split('@')[0],
+          email: initialSession.user.email,
+          email_verified: initialSession.user.email_confirmed_at ? true : false,
+        });
+      }
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, currentSession) => {
+      if (currentSession) {
+        setSession({
+          name: currentSession.user.user_metadata?.name || currentSession.user.email.split('@')[0],
+          email: currentSession.user.email,
+          email_verified: currentSession.user.email_confirmed_at ? true : false,
+        });
+      } else {
+        setSession(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
 
   // ── App state ─────────────────────────────────────────────────────────
   const [activeTab, setActiveTab] = useState('home');
@@ -171,7 +200,11 @@ export default function App() {
         spotifyAuth={spotify.isAuthenticated}
         appleAuth={apple.isAuthorized}
         session={session}
-        onLogout={() => { clearSession(); setSession(null); }}
+        onLogout={async () => {
+          await supabase.auth.signOut();
+          clearSession();
+          setSession(null);
+        }}
       />
 
       {/* ── Main scrollable content area ── */}
