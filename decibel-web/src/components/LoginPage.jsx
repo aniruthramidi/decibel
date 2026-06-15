@@ -159,6 +159,13 @@ export default function LoginPage({ onAuthenticated }) {
     if (!email.trim() || !password.trim()) {
       return setAlert({ type: 'error', msg: 'Please fill in all fields.' });
     }
+    
+    // Client-side email format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email.trim())) {
+      return setAlert({ type: 'error', msg: 'Please enter a valid email address.' });
+    }
+
     if (mode === 'signup' && password.length < 8) {
       return setAlert({ type: 'error', msg: 'Password must be at least 8 characters.' });
     }
