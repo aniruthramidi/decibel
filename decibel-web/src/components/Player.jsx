@@ -15,6 +15,10 @@ export default function Player({ audio, ytPlayer, isYouTubeTrack, onOpenQueue })
     seek,
     setVolume,
     setIsMuted,
+    repeatMode,
+    isShuffled,
+    toggleShuffle,
+    toggleRepeat,
   } = audio;
 
   // For YouTube tracks, use ytPlayer state; otherwise use HTML audio state
@@ -158,7 +162,11 @@ export default function Player({ audio, ytPlayer, isYouTubeTrack, onOpenQueue })
         width: '100%', maxWidth: '550px', margin: '0 auto',
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <button style={{ color: 'rgba(255,255,255,0.3)' }} title="Shuffle">
+          <button
+            onClick={toggleShuffle}
+            style={{ color: isShuffled ? 'rgb(var(--theme-glow-rgb))' : 'rgba(255,255,255,0.3)' }}
+            title={`Shuffle: ${isShuffled ? 'On' : 'Off'}`}
+          >
             <Shuffle size={16} />
           </button>
 
@@ -189,8 +197,32 @@ export default function Player({ audio, ytPlayer, isYouTubeTrack, onOpenQueue })
             <SkipForward size={20} fill="currentColor" />
           </button>
 
-          <button style={{ color: 'rgba(255,255,255,0.3)' }} title="Repeat">
+          <button
+            onClick={toggleRepeat}
+            style={{
+              color: repeatMode !== 'off' ? 'rgb(var(--theme-glow-rgb))' : 'rgba(255,255,255,0.3)',
+              position: 'relative'
+            }}
+            title={`Repeat: ${repeatMode === 'one' ? 'One' : repeatMode === 'all' ? 'All' : 'Off'}`}
+          >
             <RotateCcw size={16} />
+            {repeatMode === 'one' && (
+              <span style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                fontSize: '8px',
+                fontWeight: 700,
+                color: 'rgb(var(--theme-glow-rgb))',
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                borderRadius: '50%',
+                width: '10px',
+                height: '10px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}>1</span>
+            )}
           </button>
         </div>
 
