@@ -82,7 +82,14 @@ app = FastAPI(title="Decibel YT Music API", version="1.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174"],
+    allow_origins=[
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://localhost:5175",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:5175",
+    ],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -396,6 +403,28 @@ def get_lyrics(title: str, artist: str):
 @app.get("/api/status")
 async def status():
     return {"status": "ok", "auth": AUTH_MODE}
+
+
+@app.get("/api/health")
+async def health():
+    """Simple status check for API health monitoring."""
+    import sqlite3
+    db_connected = False
+    try:
+        conn = sqlite3.connect(str(DB_PATH))
+        c = conn.cursor()
+        c.execute("SELECT 1")
+        c.fetchone()
+        conn.close()
+        db_connected = True
+    except Exception as e:
+        print(f"[Decibel] Health Check DB Error: {e}")
+    
+    return {
+        "status": "healthy" if db_connected else "degraded",
+        "database": "connected" if db_connected else "disconnected",
+        "auth_mode": AUTH_MODE
+    }
 
 
 class VerifyEmailBody(BaseModel):
