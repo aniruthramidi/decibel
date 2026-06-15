@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 export default function VinylPlayer({ currentTrack, isPlaying }) {
+  const [rpm, setRpm] = useState(33);
   const coverUrl = currentTrack?.cover || 'https://images.unsplash.com/photo-1614613535308-eb5fbd3d2c17?w=500&auto=format&fit=crop&q=80';
   const title = currentTrack?.title || 'No track playing';
   const artist = currentTrack?.artist || 'Select a track to start';
@@ -29,7 +30,7 @@ export default function VinylPlayer({ currentTrack, isPlaying }) {
       }}>
         {/* Vinyl Record */}
         <div 
-          className={`vinyl-record ${isPlaying ? 'spinning' : ''}`}
+          className={`vinyl-record ${isPlaying ? 'spinning' : ''} speed-${rpm}`}
           style={{
             position: 'absolute',
             width: '270px',
@@ -207,6 +208,45 @@ export default function VinylPlayer({ currentTrack, isPlaying }) {
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap'
         }}>{artist}</p>
+
+        {/* RPM Controls */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          gap: '8px',
+          marginTop: '10px'
+        }}>
+          <button
+            onClick={() => setRpm(33)}
+            style={{
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: 600,
+              background: rpm === 33 ? 'rgba(255,255,255,0.12)' : 'transparent',
+              border: `1px solid ${rpm === 33 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)'}`,
+              color: rpm === 33 ? '#fff' : 'rgba(255,255,255,0.4)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            33 RPM
+          </button>
+          <button
+            onClick={() => setRpm(45)}
+            style={{
+              padding: '4px 10px',
+              borderRadius: '6px',
+              fontSize: '11px',
+              fontWeight: 600,
+              background: rpm === 45 ? 'rgba(255,255,255,0.12)' : 'transparent',
+              border: `1px solid ${rpm === 45 ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.06)'}`,
+              color: rpm === 45 ? '#fff' : 'rgba(255,255,255,0.4)',
+              transition: 'all 0.2s ease',
+            }}
+          >
+            45 RPM
+          </button>
+        </div>
       </div>
     </div>
   );
