@@ -434,3 +434,31 @@ main > div > div[style*="flex-wrap"]:not([style*="gap: 2rem"]):not([style*="gap:
   }
 }
 
+/* ─── Pulsating dot indicator for live playing ─── */
+@keyframes pulseGlow {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(29, 185, 84, 0.7);
+  }
+  70% {
+    transform: scale(1.15);
+    box-shadow: 0 0 0 5px rgba(29, 185, 84, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(29, 185, 84, 0);
+  }
+}
+.live-pulse-dot {
+  animation: pulseGlow 1.8s infinite ease-in-out;
+}
+
+/* ─── Vinyl record spin speed variants ─── */
+.vinyl-record.spinning.speed-33 {
+  animation-duration: 3.5s;
+}
+.vinyl-record.spinning.speed-45 {
+  animation-duration: 2.2s;
+}
+
+

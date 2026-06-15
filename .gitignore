@@ -22,3 +22,4 @@ decibel-web/server/oauth.db
 .env
 
 decibel-web/server/.venv
+.vercel
