@@ -205,6 +205,7 @@ export default function App() {
           clearSession();
           setSession(null);
         }}
+        isPlaying={isYouTubeTrack ? ytPlayer?.isPlaying : audio.isPlaying}
       />
 
       {/* ── Main scrollable content area ── */}

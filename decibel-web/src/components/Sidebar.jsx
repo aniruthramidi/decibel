@@ -10,7 +10,7 @@ const TABS = [
   { id: 'settings', label: 'Connect',     icon: Settings },
 ];
 
-export default function Sidebar({ activeTab, setActiveTab, spotifyAuth, appleAuth, session, onLogout }) {
+export default function Sidebar({ activeTab, setActiveTab, spotifyAuth, appleAuth, session, onLogout, isPlaying }) {
   const initial = session?.name?.[0]?.toUpperCase() || '?';
 
   return (
@@ -67,10 +67,21 @@ export default function Sidebar({ activeTab, setActiveTab, spotifyAuth, appleAut
                 transition: 'all 0.2s ease',
                 letterSpacing: '-0.01em',
                 border: activeTab === id ? '1px solid rgba(255,255,255,0.12)' : '1px solid transparent',
+                position: 'relative',
               }}
             >
               <Icon size={14} />
               <span className="hidden-mobile">{label}</span>
+              {id === 'home' && isPlaying && (
+                <span className="live-pulse-dot" style={{
+                  width: '6px',
+                  height: '6px',
+                  borderRadius: '50%',
+                  backgroundColor: '#1db954',
+                  marginLeft: '2px',
+                  display: 'inline-block',
+                }} />
+              )}
             </button>
           ))}
         </div>
