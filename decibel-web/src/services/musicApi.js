@@ -239,8 +239,16 @@ export async function searchArchiveTracks(query) {
 // Master unified search — FULL-LENGTH SONGS ONLY
 // Priority: YouTube Music (ytmusicapi) → Audius → Internet Archive
 // ─────────────────────────────────────────────────────────────────────────────
+const searchCache = {};
+
 export async function searchAllFreeSources(query) {
   if (!query?.trim()) return FEATURED_TRACKS;
+
+  const cacheKey = query.trim().toLowerCase();
+  if (searchCache[cacheKey]) {
+    console.log('[musicApi] Returning cached results for:', query);
+    return searchCache[cacheKey];
+  }
 
   const [ytResult, audiusResult, archiveResult] = await Promise.allSettled([
     searchYouTubeMusicTracks(query),   // YouTube Music (full songs, best catalog)
@@ -261,5 +269,7 @@ export async function searchAllFreeSources(query) {
     return true;
   });
 
-  return unique.length > 0 ? unique : FEATURED_TRACKS;
+  const finalResult = unique.length > 0 ? unique : FEATURED_TRACKS;
+  searchCache[cacheKey] = finalResult;
+  return finalResult;
 }
