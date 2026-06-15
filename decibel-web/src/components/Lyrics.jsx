@@ -17,6 +17,7 @@ export default function Lyrics({ currentTrack, currentTime }) {
   const [lyrics, setLyrics] = useState(null); // { plain, synced, instrumental }
   const [loading, setLoading] = useState(false);
   const [activeIdx, setActiveIdx] = useState(0);
+  const [fontSize, setFontSize] = useState(14);
   const containerRef = useRef(null);
   const activeRef = useRef(null);
   const prevTrackId = useRef(null);
@@ -116,65 +117,105 @@ export default function Lyrics({ currentTrack, currentTime }) {
   // Synced lyrics view
   if (lyrics.synced.length > 0) {
     return (
-      <div
-        ref={containerRef}
-        style={{
-          overflowY: 'auto',
-          flex: 1,
-          padding: '8px 4px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '2px',
-        }}
-      >
-        {lyrics.synced.map((line, i) => {
-          const isActive = i === activeIdx;
-          const isPast = i < activeIdx;
-          return (
-            <div
-              key={i}
-              ref={isActive ? activeRef : null}
-              style={{
-                padding: '6px 8px',
-                borderRadius: '10px',
-                fontSize: isActive ? '16px' : '14px',
-                fontWeight: isActive ? 700 : 400,
-                fontFamily: isActive ? "'Instrument Serif', serif" : "'Inter', sans-serif",
-                color: isActive
-                  ? '#fff'
-                  : isPast
-                    ? 'rgba(255,255,255,0.35)'
-                    : 'rgba(255,255,255,0.5)',
-                lineHeight: 1.5,
-                transition: 'all 0.3s ease',
-                transform: isActive ? 'scale(1.02)' : 'scale(1)',
-                background: isActive ? 'rgba(255,255,255,0.04)' : 'transparent',
-                cursor: 'default',
-              }}
-            >
-              {line.text || '\u2006'}
-            </div>
-          );
-        })}
+      <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', height: '100%' }}>
+        {/* Font Controls */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', paddingBottom: '6px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '6px', flexShrink: 0 }}>
+          <button
+            onClick={() => setFontSize(prev => Math.max(12, prev - 2))}
+            style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.45)', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+            title="Decrease text size"
+          >
+            A-
+          </button>
+          <button
+            onClick={() => setFontSize(prev => Math.min(24, prev + 2))}
+            style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.45)', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+            title="Increase text size"
+          >
+            A+
+          </button>
+        </div>
+
+        <div
+          ref={containerRef}
+          style={{
+            overflowY: 'auto',
+            flex: 1,
+            padding: '8px 4px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '2px',
+          }}
+        >
+          {lyrics.synced.map((line, i) => {
+            const isActive = i === activeIdx;
+            const isPast = i < activeIdx;
+            return (
+              <div
+                key={i}
+                ref={isActive ? activeRef : null}
+                style={{
+                  padding: '6px 8px',
+                  borderRadius: '10px',
+                  fontSize: isActive ? `${fontSize + 2}px` : `${fontSize}px`,
+                  fontWeight: isActive ? 700 : 400,
+                  fontFamily: isActive ? "'Instrument Serif', serif" : "'Inter', sans-serif",
+                  color: isActive
+                    ? '#fff'
+                    : isPast
+                      ? 'rgba(255,255,255,0.35)'
+                      : 'rgba(255,255,255,0.5)',
+                  lineHeight: 1.5,
+                  transition: 'all 0.3s ease',
+                  transform: isActive ? 'scale(1.02)' : 'scale(1)',
+                  background: isActive ? 'rgba(255,255,255,0.04)' : 'transparent',
+                  cursor: 'default',
+                }}
+              >
+                {line.text || '\u2006'}
+              </div>
+            );
+          })}
+        </div>
       </div>
     );
   }
 
   // Plain lyrics fallback
   return (
-    <div
-      ref={containerRef}
-      style={{
-        overflowY: 'auto',
-        flex: 1,
-        padding: '4px',
-        fontSize: '14px',
-        color: 'rgba(255,255,255,0.55)',
-        lineHeight: 1.8,
-        whiteSpace: 'pre-wrap',
-      }}
-    >
-      {lyrics.plain}
+    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, overflow: 'hidden', height: '100%' }}>
+      {/* Font Controls */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px', paddingBottom: '6px', borderBottom: '1px solid rgba(255,255,255,0.05)', marginBottom: '6px', flexShrink: 0 }}>
+        <button
+          onClick={() => setFontSize(prev => Math.max(12, prev - 2))}
+          style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.45)', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+          title="Decrease text size"
+        >
+          A-
+        </button>
+        <button
+          onClick={() => setFontSize(prev => Math.min(24, prev + 2))}
+          style={{ fontSize: '10px', fontWeight: 600, color: 'rgba(255,255,255,0.45)', padding: '2px 8px', borderRadius: '4px', background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+          title="Increase text size"
+        >
+          A+
+        </button>
+      </div>
+
+      <div
+        ref={containerRef}
+        style={{
+          overflowY: 'auto',
+          flex: 1,
+          padding: '4px',
+          fontSize: `${fontSize}px`,
+          color: 'rgba(255,255,255,0.55)',
+          lineHeight: 1.8,
+          whiteSpace: 'pre-wrap',
+        }}
+      >
+        {lyrics.plain}
+      </div>
     </div>
   );
 }
