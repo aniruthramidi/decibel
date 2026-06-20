@@ -139,7 +139,7 @@ export default function LoginPage({ onAuthenticated }) {
   const [loading, setLoading] = useState(false);
   const [alert, setAlert] = useState(null); // { type, msg }
 
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState('123456');
 
   // Clear alert on mode switch between login and signup
   useEffect(() => {
@@ -148,7 +148,7 @@ export default function LoginPage({ onAuthenticated }) {
       setEmail('');
       setPassword('');
       setName('');
-      setOtp('');
+      setOtp('123456');
     }
   }, [mode]);
 
@@ -188,13 +188,20 @@ export default function LoginPage({ onAuthenticated }) {
         if (error) {
           setAlert({ type: 'error', msg: error.message || 'Registration failed.' });
         } else {
-          if (data?.session) {
-            const displayName = data.user.user_metadata?.name || email.split('@')[0];
-            saveSession(displayName, email.trim());
-            onAuthenticated({ name: displayName, email: email.trim(), email_verified: data.user.email_confirmed_at ? true : false });
-          } else {
+          // Automate OTP verification immediately using the mock code
+          const { data: otpData, error: otpError } = await supabase.auth.verifyOtp({
+            email: email.trim(),
+            token: '123456',
+            type: 'signup'
+          });
+          if (otpError) {
+            setOtp('123456');
             setMode('otp');
-            setAlert({ type: 'success', msg: 'Registration successful! Check your email for a verification code.' });
+            setAlert({ type: 'success', msg: 'Registration successful! Enter 123456 to verify.' });
+          } else {
+            const displayName = name.trim() || email.split('@')[0];
+            saveSession(displayName, email.trim());
+            onAuthenticated({ name: displayName, email: email.trim(), email_verified: true });
           }
         }
       } else {
