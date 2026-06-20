@@ -13,6 +13,11 @@ from __future__ import annotations
 import os
 from pathlib import Path
 from typing import List, Optional
+from dotenv import load_dotenv
+
+# Load local environment variables from .env file
+load_dotenv()
+
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
