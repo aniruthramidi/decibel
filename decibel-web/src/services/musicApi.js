@@ -80,18 +80,33 @@ export async function fetchTrendingTracks() {
   }
 }
 
+function getSessionEmail() {
+  try {
+    const sessionStr = localStorage.getItem('decibel_session');
+    if (sessionStr) {
+      const session = JSON.parse(sessionStr);
+      return session.email || 'guest@decibel.app';
+    }
+  } catch (e) {
+    console.error('Error reading session email', e);
+  }
+  return 'guest@decibel.app';
+}
+
 /**
  * YouTube Music playlist management — all require OAuth in server/oauth.json
  * Run `ytmusicapi oauth` inside the server/ folder to set up OAuth.
  */
 export const ytPlaylists = {
   async list() {
-    const res = await fetch('/api/playlists');
+    const email = getSessionEmail();
+    const res = await fetch(`/api/playlists?email=${encodeURIComponent(email)}`);
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   },
   async create(title, description = '') {
-    const res = await fetch('/api/playlists', {
+    const email = getSessionEmail();
+    const res = await fetch(`/api/playlists?email=${encodeURIComponent(email)}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title, description }),
@@ -99,11 +114,18 @@ export const ytPlaylists = {
     if (!res.ok) throw new Error(await res.text());
     return res.json();
   },
-  async addItems(playlistId, videoIds) {
+  async addItems(playlistId, track) {
     const res = await fetch(`/api/playlists/${playlistId}/items`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ videoIds }),
+      body: JSON.stringify({
+        videoId: track.videoId,
+        title: track.title,
+        artist: track.artist,
+        album: track.album || '',
+        cover: track.cover || '',
+        duration: track.duration || 0
+      }),
     });
     if (!res.ok) throw new Error(await res.text());
     return res.json();

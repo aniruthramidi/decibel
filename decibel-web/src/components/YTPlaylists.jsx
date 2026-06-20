@@ -204,7 +204,7 @@ function PlaylistDetail({ playlist, onBack, onPlayTrack }) {
     if (!track.videoId) return setStatus({ type: 'error', msg: 'No videoId for this track.' });
     setAdding(track.videoId);
     try {
-      await ytPlaylists.addItems(playlist.playlistId, [track.videoId]);
+      await ytPlaylists.addItems(playlist.playlistId, track);
       setTracks(prev => [track, ...prev]);
       setStatus({ type: 'success', msg: `"${track.title}" added to playlist!` });
       setTimeout(() => setStatus(null), 3000);
@@ -548,25 +548,25 @@ export default function YTPlaylists({ onPlayTrack }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <div style={{
             padding: '5px 12px', borderRadius: '9999px', fontSize: '11px', fontWeight: 600,
-            background: authMode === 'oauth' ? 'rgba(255,200,50,0.1)' : 'rgba(255,255,255,0.05)',
-            border: `1px solid ${authMode === 'oauth' ? 'rgba(255,200,50,0.25)' : 'rgba(255,255,255,0.08)'}`,
-            color: authMode === 'oauth' ? 'rgba(255,200,50,0.9)' : 'rgba(255,255,255,0.3)',
+            background: authMode !== 'offline' ? 'rgba(29,185,84,0.1)' : 'rgba(252,60,68,0.1)',
+            border: `1px solid ${authMode !== 'offline' ? 'rgba(29,185,84,0.25)' : 'rgba(252,60,68,0.25)'}`,
+            color: authMode !== 'offline' ? '#1db954' : '#fc3c44',
             display: 'flex', alignItems: 'center', gap: '5px',
           }}>
-            {authMode === 'oauth' ? <CheckCircle2 size={11} /> : <AlertCircle size={11} />}
-            {authMode === 'oauth' ? 'OAuth Connected' : authMode === 'offline' ? 'Backend Offline' : 'Guest Mode'}
+            {authMode !== 'offline' ? <CheckCircle2 size={11} /> : <AlertCircle size={11} />}
+            {authMode !== 'offline' ? 'Database Synced' : 'Backend Offline'}
           </div>
 
           <button
             onClick={() => setShowCreate(true)}
-            disabled={authMode !== 'oauth'}
+            disabled={authMode === 'offline'}
             style={{
               display: 'flex', alignItems: 'center', gap: '7px',
               padding: '9px 18px', borderRadius: '9999px',
-              background: authMode === 'oauth' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.06)',
-              color: authMode === 'oauth' ? '#000' : 'rgba(255,255,255,0.3)',
+              background: authMode !== 'offline' ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.06)',
+              color: authMode !== 'offline' ? '#000' : 'rgba(255,255,255,0.3)',
               fontSize: '13px', fontWeight: 600,
-              cursor: authMode === 'oauth' ? 'pointer' : 'not-allowed',
+              cursor: authMode !== 'offline' ? 'pointer' : 'not-allowed',
               border: '1px solid rgba(255,255,255,0.1)',
               transition: 'all 0.2s',
             }}
@@ -578,28 +578,16 @@ export default function YTPlaylists({ onPlayTrack }) {
 
       <AnimatePresence>{status && <StatusBanner status={status} />}</AnimatePresence>
 
-      {/* Setup hint when not in OAuth mode */}
-      {authMode !== 'oauth' && authMode !== 'unknown' && (
+      {/* Setup hint when backend is offline */}
+      {authMode === 'offline' && (
         <div className="liquid-glass" style={{ borderRadius: '16px', padding: '18px 22px', display: 'flex', gap: '14px', alignItems: 'flex-start' }}>
-          <AlertCircle size={18} color="rgba(255,200,50,0.7)" style={{ flexShrink: 0, marginTop: 2 }} />
+          <AlertCircle size={18} color="#fc3c44" style={{ flexShrink: 0, marginTop: 2 }} />
           <div>
             <div style={{ fontSize: '14px', fontWeight: 600, color: '#fff', marginBottom: '6px' }}>
-              OAuth Setup Required for Playlists
+              Backend Connection Offline
             </div>
             <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>
-              To create and manage playlists, authenticate with your YouTube Music account:
-            </div>
-            <code style={{
-              display: 'block', marginTop: '10px', padding: '10px 14px',
-              borderRadius: '10px', background: 'rgba(0,0,0,0.4)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              fontSize: '12px', color: 'rgba(255,255,255,0.75)',
-              fontFamily: 'monospace',
-            }}>
-              cd decibel-web/server && ytmusicapi oauth
-            </code>
-            <div style={{ fontSize: '12px', color: 'rgba(255,255,255,0.35)', marginTop: '8px' }}>
-              Follow the browser prompts → saves <strong>oauth.json</strong> → restart the server.
+              The React frontend is unable to connect to the FastAPI Python server. Please ensure the backend is running.
             </div>
           </div>
         </div>
