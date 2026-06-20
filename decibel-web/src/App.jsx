@@ -334,29 +334,12 @@ export default function App() {
               </div>
 
               {/* Recommendations */}
-              {audio.currentTrack && (
-                <div className="liquid-glass" style={{ borderRadius: '20px', padding: '18px 20px' }}>
-                  <Recommendations
-                    currentTrack={audio.currentTrack}
-                    currentTrackId={audio.currentTrack?.id}
-                    onPlay={playTrackWithStats}
-                  />
-                </div>
-              )}
-
-              {/* Featured tracks */}
-              <div className="liquid-glass" style={{ borderRadius: '20px', padding: '20px 24px', flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                <h3 style={{ fontSize: '13px', fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.4)', marginBottom: '14px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Music size={14} /> Featured Tracks
-                </h3>
-                <div style={{ overflowY: 'auto', flex: 1 }}>
-                  <TrackList
-                    tracks={FEATURED_TRACKS}
-                    currentTrack={audio.currentTrack}
-                    isPlaying={audio.isPlaying}
-                    onTrackSelect={playTrackWithStats}
-                  />
-                </div>
+              <div className="liquid-glass" style={{ borderRadius: '20px', padding: '20px 24px' }}>
+                <Recommendations
+                  currentTrack={audio.currentTrack}
+                  currentTrackId={audio.currentTrack?.id}
+                  onPlay={playTrackWithStats}
+                />
               </div>
             </div>
           </motion.div>
