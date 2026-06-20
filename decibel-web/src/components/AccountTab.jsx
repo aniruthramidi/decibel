@@ -5,7 +5,7 @@ import {
   LogOut, Edit2, X, Send, RefreshCw, Eye, EyeOff, Lock,
 } from 'lucide-react';
 
-const API = 'http://localhost:8000';
+const API = import.meta.env.PROD ? '' : 'http://localhost:8000';
 
 function StatCard({ icon: Icon, label, value, color }) {
   return (

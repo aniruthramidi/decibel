@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Mic2, Music2 } from 'lucide-react';
 
-const API = 'http://localhost:8000';
+const API = import.meta.env.PROD ? '' : 'http://localhost:8000';
 
 function parseSynced(raw) {
   if (!raw) return [];

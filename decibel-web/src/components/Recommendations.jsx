@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Sparkles, Play, Loader2 } from 'lucide-react';
 
-const API = 'http://localhost:8000';
+const API = import.meta.env.PROD ? '' : 'http://localhost:8000';
 
 function TrackChip({ track, onPlay, isPlaying }) {
   const [hovered, setHovered] = useState(false);

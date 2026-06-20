@@ -20,7 +20,21 @@ from pydantic import BaseModel
 from ytmusicapi import YTMusic
 
 import sqlite3
-DB_PATH = Path(__file__).parent / "decibel.db"
+import shutil
+
+# On Vercel, the filesystem is read-only except for /tmp.
+# Copy database to /tmp if running in Vercel or in a read-only environment.
+if os.environ.get("VERCEL") or not os.access(Path(__file__).parent, os.W_OK):
+    DB_PATH = Path("/tmp") / "decibel.db"
+    src_db = Path(__file__).parent / "decibel.db"
+    if src_db.exists() and not DB_PATH.exists():
+        try:
+            shutil.copy(src_db, DB_PATH)
+            print(f"[Decibel] Copied sqlite database to /tmp/decibel.db")
+        except Exception as e:
+            print(f"[Decibel] Error copying database to /tmp: {e}")
+else:
+    DB_PATH = Path(__file__).parent / "decibel.db"
 
 def init_db():
     conn = sqlite3.connect(str(DB_PATH))
@@ -165,7 +179,7 @@ async def search(q: str = Query(..., min_length=1), limit: int = Query(20, ge=1,
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc))
 
-    tracks = [t for item in results if (t := _format_track(item))]
+    tracks = [t for t in (_format_track(item) for item in results) if t]
     return {"query": q, "total": len(tracks), "tracks": tracks}
 
 
@@ -182,7 +196,7 @@ async def trending():
             # Guest fallback: search for chart toppers
             items = yt.search("top hits 2024", filter="songs", limit=20)
 
-        tracks = [t for item in items if (t := _format_track(item))]
+        tracks = [t for t in (_format_track(item) for item in items) if t]
         return {"tracks": tracks[:20]}
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc))
@@ -461,7 +475,7 @@ async def get_recommendations(videoId: Optional[str] = None, title: Optional[str
             q = f"similar to {artist} {title}"
             items = yt.search(q, filter="songs", limit=10)
         
-        tracks = [t for item in items if (t := _format_track(item))]
+        tracks = [t for t in (_format_track(item) for item in items) if t]
         return {"tracks": tracks[:8]}
     except Exception as exc:
         raise HTTPException(status_code=502, detail=str(exc))
