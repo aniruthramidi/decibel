@@ -22,35 +22,58 @@ from ytmusicapi import YTMusic
 import sqlite3
 import shutil
 
-# On Vercel, the filesystem is read-only except for /tmp.
-# Copy database to /tmp if running in Vercel or in a read-only environment.
-if os.environ.get("VERCEL") or not os.access(Path(__file__).parent, os.W_OK):
-    DB_PATH = Path("/tmp") / "decibel.db"
-    src_db = Path(__file__).parent / "decibel.db"
-    if src_db.exists() and not DB_PATH.exists():
-        try:
-            shutil.copy(src_db, DB_PATH)
-            print(f"[Decibel] Copied sqlite database to /tmp/decibel.db")
-        except Exception as e:
-            print(f"[Decibel] Error copying database to /tmp: {e}")
+# Check if PostgreSQL URL is provided
+DATABASE_URL = os.environ.get("DATABASE_URL") or os.environ.get("POSTGRES_URL")
+IS_POSTGRES = DATABASE_URL is not None
+
+if IS_POSTGRES:
+    import psycopg2
+    from psycopg2 import IntegrityError as DBIntegrityError
+    print("[Decibel] Using PostgreSQL Database")
 else:
-    DB_PATH = Path(__file__).parent / "decibel.db"
+    from sqlite3 import IntegrityError as DBIntegrityError
+    # On Vercel, the filesystem is read-only except for /tmp.
+    # Copy database to /tmp if running in Vercel or in a read-only environment.
+    if os.environ.get("VERCEL") or not os.access(Path(__file__).parent, os.W_OK):
+        DB_PATH = Path("/tmp") / "decibel.db"
+        src_db = Path(__file__).parent / "decibel.db"
+        if src_db.exists() and not DB_PATH.exists():
+            try:
+                shutil.copy(src_db, DB_PATH)
+                print(f"[Decibel] Copied sqlite database to /tmp/decibel.db")
+            except Exception as e:
+                print(f"[Decibel] Error copying database to /tmp: {e}")
+    else:
+        DB_PATH = Path(__file__).parent / "decibel.db"
+    print(f"[Decibel] SQLite database path set to: {DB_PATH}")
+
+def get_db_connection():
+    if IS_POSTGRES:
+        return psycopg2.connect(DATABASE_URL)
+    else:
+        return sqlite3.connect(str(DB_PATH))
+
+def db_execute(cursor, query, params=None):
+    if IS_POSTGRES:
+        query = query.replace("?", "%s")
+    if params is None:
+        cursor.execute(query)
+    else:
+        cursor.execute(query, params)
 
 def init_db():
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = get_db_connection()
     c = conn.cursor()
-    c.execute("""
+    
+    users_sql = """
         CREATE TABLE IF NOT EXISTS users (
             email TEXT PRIMARY KEY,
             name TEXT,
             password TEXT
         )
-    """)
-    try:
-        c.execute("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0")
-    except sqlite3.OperationalError:
-        pass
-    c.execute("""
+    """
+    
+    playlists_sql = """
         CREATE TABLE IF NOT EXISTS playlists (
             playlistId TEXT PRIMARY KEY,
             user_email TEXT,
@@ -58,8 +81,9 @@ def init_db():
             description TEXT,
             FOREIGN KEY(user_email) REFERENCES users(email) ON DELETE CASCADE
         )
-    """)
-    c.execute("""
+    """
+    
+    playlist_tracks_sql = """
         CREATE TABLE IF NOT EXISTS playlist_tracks (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             playlist_id TEXT,
@@ -71,12 +95,37 @@ def init_db():
             duration INTEGER,
             FOREIGN KEY(playlist_id) REFERENCES playlists(playlistId) ON DELETE CASCADE
         )
-    """)
+    """
+    
+    if IS_POSTGRES:
+        playlist_tracks_sql = playlist_tracks_sql.replace("INTEGER PRIMARY KEY AUTOINCREMENT", "SERIAL PRIMARY KEY")
+        
+    db_execute(c, users_sql)
+    
+    # Try altering users table for email_verified
+    if IS_POSTGRES:
+        try:
+            # Check if column exists to avoid transaction failure
+            db_execute(c, "SELECT column_name FROM information_schema.columns WHERE table_name='users' AND column_name='email_verified'")
+            if not c.fetchone():
+                db_execute(c, "ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0")
+                conn.commit()
+        except Exception:
+            conn.rollback()
+    else:
+        try:
+            db_execute(c, "ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0")
+            conn.commit()
+        except sqlite3.OperationalError:
+            pass
+            
+    db_execute(c, playlists_sql)
+    db_execute(c, playlist_tracks_sql)
     conn.commit()
     conn.close()
 
 init_db()
-print(f"[Decibel] SQLite database initialised at {DB_PATH}")
+print("[Decibel] Database initialised successfully")
 
 # ── Initialise YTMusic ────────────────────────────────────────────────────────
 OAUTH_PATH = Path(__file__).parent / "oauth.json"
@@ -221,13 +270,13 @@ def register_user(body: RegisterBody):
     if len(password) < 8:
         raise HTTPException(status_code=400, detail="Password must be at least 8 characters long.")
     
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = get_db_connection()
     c = conn.cursor()
     try:
-        c.execute("INSERT INTO users (email, name, password, email_verified) VALUES (?, ?, ?, 0)", (email, name, password))
+        db_execute(c, "INSERT INTO users (email, name, password, email_verified) VALUES (?, ?, ?, 0)", (email, name, password))
         conn.commit()
         return {"email": email, "name": name, "email_verified": False}
-    except sqlite3.IntegrityError:
+    except DBIntegrityError:
         raise HTTPException(status_code=400, detail="User already exists.")
     finally:
         conn.close()
@@ -237,9 +286,9 @@ def login_user(body: LoginBody):
     email = body.email.strip().lower()
     password = body.password
     
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = get_db_connection()
     c = conn.cursor()
-    c.execute("SELECT name, password, email_verified FROM users WHERE email = ?", (email,))
+    db_execute(c, "SELECT name, password, email_verified FROM users WHERE email = ?", (email,))
     row = c.fetchone()
     conn.close()
     
@@ -258,14 +307,14 @@ def login_user(body: LoginBody):
 @app.get("/api/playlists")
 async def get_playlists(email: str = Query(...)):
     """Return the user's playlists from SQLite."""
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = get_db_connection()
     c = conn.cursor()
-    c.execute("SELECT playlistId, title, description FROM playlists WHERE user_email = ?", (email.lower(),))
+    db_execute(c, "SELECT playlistId, title, description FROM playlists WHERE user_email = ?", (email.lower(),))
     rows = c.fetchall()
     playlists = []
     for row in rows:
         pl_id, title, desc = row
-        c.execute("SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = ?", (pl_id,))
+        db_execute(c, "SELECT COUNT(*) FROM playlist_tracks WHERE playlist_id = ?", (pl_id,))
         count = c.fetchone()[0]
         playlists.append({
             "playlistId": pl_id,
@@ -287,9 +336,9 @@ async def create_playlist(body: CreatePlaylistBody, email: str = Query(...)):
     """Create a new playlist in SQLite."""
     import uuid
     pl_id = str(uuid.uuid4())
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = get_db_connection()
     c = conn.cursor()
-    c.execute("INSERT INTO playlists (playlistId, user_email, title, description) VALUES (?, ?, ?, ?)",
+    db_execute(c, "INSERT INTO playlists (playlistId, user_email, title, description) VALUES (?, ?, ?, ?)",
               (pl_id, email.lower(), body.title, body.description))
     conn.commit()
     conn.close()
@@ -308,16 +357,16 @@ class AddItemBody(BaseModel):
 @app.post("/api/playlists/{playlist_id}/items")
 async def add_playlist_item(playlist_id: str, body: AddItemBody):
     """Add a track to a playlist in SQLite."""
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = get_db_connection()
     c = conn.cursor()
-    c.execute("SELECT 1 FROM playlists WHERE playlistId = ?", (playlist_id,))
+    db_execute(c, "SELECT 1 FROM playlists WHERE playlistId = ?", (playlist_id,))
     if not c.fetchone():
         conn.close()
         raise HTTPException(status_code=404, detail="Playlist not found")
         
-    c.execute("SELECT 1 FROM playlist_tracks WHERE playlist_id = ? AND video_id = ?", (playlist_id, body.videoId))
+    db_execute(c, "SELECT 1 FROM playlist_tracks WHERE playlist_id = ? AND video_id = ?", (playlist_id, body.videoId))
     if not c.fetchone():
-        c.execute("""
+        db_execute(c, """
             INSERT INTO playlist_tracks (playlist_id, video_id, title, artist, album, cover, duration)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (playlist_id, body.videoId, body.title, body.artist, body.album, body.cover, body.duration))
@@ -329,9 +378,9 @@ async def add_playlist_item(playlist_id: str, body: AddItemBody):
 @app.delete("/api/playlists/{playlist_id}")
 async def delete_playlist(playlist_id: str):
     """Delete a playlist from SQLite."""
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = get_db_connection()
     c = conn.cursor()
-    c.execute("DELETE FROM playlists WHERE playlistId = ?", (playlist_id,))
+    db_execute(c, "DELETE FROM playlists WHERE playlistId = ?", (playlist_id,))
     conn.commit()
     conn.close()
     return {"status": "ok"}
@@ -340,9 +389,9 @@ async def delete_playlist(playlist_id: str):
 @app.get("/api/playlist/{playlist_id}")
 async def get_playlist(playlist_id: str):
     """Get tracks inside a playlist from SQLite."""
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = get_db_connection()
     c = conn.cursor()
-    c.execute("SELECT title, description FROM playlists WHERE playlistId = ?", (playlist_id,))
+    db_execute(c, "SELECT title, description FROM playlists WHERE playlistId = ?", (playlist_id,))
     pl_row = c.fetchone()
     if not pl_row:
         conn.close()
@@ -350,7 +399,7 @@ async def get_playlist(playlist_id: str):
     
     title, desc = pl_row
     
-    c.execute("""
+    db_execute(c, """
         SELECT video_id, title, artist, album, cover, duration 
         FROM playlist_tracks 
         WHERE playlist_id = ?
@@ -422,12 +471,11 @@ async def status():
 @app.get("/api/health")
 async def health():
     """Simple status check for API health monitoring."""
-    import sqlite3
     db_connected = False
     try:
-        conn = sqlite3.connect(str(DB_PATH))
+        conn = get_db_connection()
         c = conn.cursor()
-        c.execute("SELECT 1")
+        db_execute(c, "SELECT 1")
         c.fetchone()
         conn.close()
         db_connected = True
@@ -452,9 +500,9 @@ def verify_email(body: VerifyEmailBody):
     if code != "123456":
         raise HTTPException(status_code=400, detail="Invalid verification code.")
     
-    conn = sqlite3.connect(str(DB_PATH))
+    conn = get_db_connection()
     c = conn.cursor()
-    c.execute("UPDATE users SET email_verified = 1 WHERE email = ?", (email,))
+    db_execute(c, "UPDATE users SET email_verified = 1 WHERE email = ?", (email,))
     conn.commit()
     conn.close()
     return {"status": "ok", "email_verified": True}
